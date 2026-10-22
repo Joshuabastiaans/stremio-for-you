@@ -1,0 +1,21 @@
+{
+  "name": "stremio-for-you",
+  "version": "1.1.0",
+  "description": "Stremio addon that recommends movies and series based on your Stremio library and watch history.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "launch": "node launcher.js",
+    "test": "node test/smoke.test.mjs"
+  },
+  "keywords": ["stremio", "stremio-addon", "recommendations", "tmdb"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Joshuabastiaans/stremio-for-you.git"
+  },
+  "engines": {
+    "node": ">=22.9"
+  },
+  "license": "MIT"
+}

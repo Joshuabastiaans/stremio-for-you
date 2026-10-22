@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>For You · Stremio addon</title>
+  <style>
+    :root {
+      --bg: #0f0d1a;
+      --panel: #1a1729;
+      --border: #2d2943;
+      --text: #ecebf3;
+      --muted: #9a96b0;
+      --accent: #7b5bf5;
+      --accent-hover: #8f74ff;
+      --error: #ff6b81;
+      --ok: #4ade80;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    main {
+      width: 100%;
+      max-width: 440px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+    }
+    h1 { margin: 0 0 4px; font-size: 22px; }
+    p { margin: 0 0 16px; color: var(--muted); }
+    .tabs { display: flex; gap: 4px; margin: 20px 0 16px; background: var(--bg); padding: 4px; border-radius: 9px; }
+    .tabs button {
+      flex: 1; border: 0; background: transparent; color: var(--muted);
+      padding: 8px; border-radius: 6px; font: inherit; cursor: pointer;
+    }
+    .tabs button[aria-selected="true"] { background: var(--border); color: var(--text); }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    input[type="email"], input[type="password"], input[type="text"], input:not([type]) {
+      width: 100%; padding: 10px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit;
+    }
+    input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+    .check {
+      display: flex; gap: 10px; align-items: flex-start; margin: 18px 0 0; padding: 12px;
+      border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; cursor: pointer;
+    }
+    .check input { margin-top: 3px; accent-color: var(--accent); }
+    .check small, .row small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    fieldset { border: 1px solid var(--border); border-radius: 8px; margin: 12px 0 0; padding: 4px 12px 10px; }
+    legend { font-size: 13px; color: var(--muted); padding: 0 4px; }
+    fieldset .hint { margin: 0 0 4px; }
+    .row { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 0; color: var(--text); font-size: 14px; cursor: pointer; }
+    .row input { margin-top: 3px; accent-color: var(--accent); }
+    .primary {
+      width: 100%; margin-top: 18px; padding: 11px; border: 0; border-radius: 8px;
+      background: var(--accent); color: white; font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .primary:hover { background: var(--accent-hover); }
+    .primary:disabled { opacity: .6; cursor: wait; }
+    .link-button { background: none; border: 0; color: var(--accent-hover); font: inherit; cursor: pointer; padding: 0; text-decoration: underline; }
+    .hint { font-size: 13px; margin-top: 12px; }
+    code { background: var(--bg); padding: 2px 5px; border-radius: 4px; font-size: 12px; word-break: break-all; }
+    .error { color: var(--error); margin-top: 12px; font-size: 14px; }
+    #result { display: none; }
+    #result .ok { color: var(--ok); font-weight: 600; margin-bottom: 8px; }
+    .url-row { display: flex; gap: 6px; margin-top: 8px; }
+    .url-row input { font-size: 12px; }
+    .url-row button {
+      padding: 0 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--border); color: var(--text); font: inherit; cursor: pointer;
+    }
+    a.primary { display: block; text-align: center; text-decoration: none; }
+    .steps { margin: 4px 0 0; padding-left: 20px; font-size: 14px; }
+    .steps li { margin: 4px 0; }
+    .warn { font-size: 13px; color: var(--muted); border-left: 3px solid var(--accent); padding-left: 10px; margin-top: 18px; }
+    footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
+    footer img { height: 12px; flex-shrink: 0; }
+    footer p { margin: 0; font-size: 11px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>For You</h1>
+  <p>Recommendations based on your Stremio library and watch history.</p>
+
+  <div id="setup">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="login" type="button">Sign in</button>
+      <button role="tab" aria-selected="false" data-tab="key" type="button">Use auth key</button>
+    </div>
+
+    <form id="form">
+      <div data-panel="login">
+        <label for="email">Stremio email</label>
+        <input id="email" type="email" autocomplete="username">
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password">
+        <p class="hint">You sign in directly with Stremio from this page. Your password never reaches this
+          addon's server.</p>
+      </div>
+      <div data-panel="key" hidden>
+        <label for="authKey">Auth key</label>
+        <input id="authKey" type="text" spellcheck="false" autocomplete="off">
+        <p class="hint">
+          Open <code>web.stremio.com</code> while signed in, press F12, and run this in the Console:<br>
+          <code>JSON.parse(localStorage.getItem("profile")).auth.key</code>
+        </p>
+      </div>
+
+      <label class="check">
+        <input id="top" type="checkbox" checked>
+        <span>Show my rows right under Continue Watching
+          <small>Moves For You to the top of your addon list. Stremio orders home-screen rows by addon order.</small>
+        </span>
+      </label>
+
+      <fieldset>
+        <legend>Rows</legend>
+        <p class="hint">"Recommended for You" is always on.</p>
+        <label class="row"><input type="checkbox" data-row="next" checked>
+          <span>Finish the Story &amp; New Seasons<small>Next film in a series you started, new seasons of shows you finished</small></span></label>
+        <label class="row"><input type="checkbox" data-row="byw" checked>
+          <span>Because you watched…<small>Rows for your most recently watched movie and series</small></span></label>
+        <label class="row"><input type="checkbox" data-row="short" checked>
+          <span>Under 100 Minutes<small>Your movie picks that fit in an evening</small></span></label>
+        <label class="row"><input type="checkbox" data-row="weekend" checked>
+          <span>Finish in a Weekend<small>Your series picks with one short, finished season</small></span></label>
+      </fieldset>
+
+      <button class="primary" type="submit">Connect</button>
+      <div class="error" id="error" role="alert"></div>
+    </form>
+  </div>
+
+  <div id="result">
+    <div class="ok" id="summary"></div>
+    <a class="primary" id="install" href="#">Install in Stremio</a>
+    <div id="localSteps" hidden>
+      <p class="hint">Button doesn't open Stremio? Install it by hand:</p>
+      <ol class="steps">
+        <li>Click <strong>Copy</strong> below.</li>
+        <li>In Stremio, open <strong>Addons</strong>.</li>
+        <li>Paste into the search box at the top, press Enter, and click <strong>Install</strong>.</li>
+      </ol>
+    </div>
+    <label for="url" id="urlLabel">Or paste this URL into the search box on Stremio's Addons page:</label>
+    <div class="url-row">
+      <input id="url" readonly>
+      <button id="copy" type="button">Copy</button>
+    </div>
+    <p class="hint" id="topNote"></p>
+    <p class="warn">This URL contains your login key. Anyone who has it can access your Stremio
+      account, so treat it like a password.</p>
+    <p class="hint">Want different settings? <button class="link-button" id="again" type="button">Sign in again</button>
+      and reinstall.</p>
+  </div>
+
+  <footer>
+    <img src="https://www.themoviedb.org/assets/v4/logos/v2/blue_long_2-9665a76b1ae401a510ec1e0ca40ddcb3b0cfe45f1d51b77a308fea0845885648.svg"
+         alt="TMDB">
+    <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+  </footer>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const STREMIO_API = 'https://api.strem.io/api';
+  let mode = 'login';
+
+  // Stremio's account API allows browser calls, so sign-in never goes through this server.
+  async function stremio(method, body) {
+    const res = await fetch(`${STREMIO_API}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error(data.error?.message || `Stremio returned HTTP ${res.status}`);
+    return data.result;
+  }
+
+  // Same encoding the server decodes: base64url of the JSON config.
+  function encodeConfig(config) {
+    const bytes = new TextEncoder().encode(JSON.stringify(config));
+    return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  document.querySelectorAll('[data-tab]').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      mode = tab.dataset.tab;
+      document.querySelectorAll('[data-tab]').forEach((t) => t.setAttribute('aria-selected', t === tab));
+      document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== mode));
+      $('error').textContent = '';
+    });
+  });
+
+  $('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const button = e.submitter;
+    button.disabled = true;
+    button.textContent = 'Connecting…';
+    $('error').textContent = '';
+    try {
+      let authKey;
+      if (mode === 'login') {
+        const email = $('email').value.trim();
+        const password = $('password').value;
+        if (!email || !password) throw new Error('Enter your Stremio email and password.');
+        try {
+          ({ authKey } = await stremio('login', { type: 'Login', email, password, facebook: false }));
+        } catch {
+          throw new Error('Stremio rejected that email and password.');
+        }
+      } else {
+        authKey = $('authKey').value.trim();
+        if (!authKey) throw new Error('Paste your auth key.');
+      }
+
+      let items;
+      try {
+        items = await stremio('datastoreGet', { authKey, collection: 'libraryItem', ids: [], all: true });
+      } catch {
+        throw new Error('That auth key did not work. It may have expired: sign in again.');
+      }
+
+      const config = {
+        authKey,
+        top: $('top').checked,
+        off: [...document.querySelectorAll('[data-row]')].filter((box) => !box.checked).map((box) => box.dataset.row),
+      };
+
+      $('password').value = '';
+      const libraryCount = items.filter((i) => !i.removed && !i.temp).length;
+      const historyCount = items.filter((i) => i.state?.overallTimeWatched > 0).length;
+      showResult(
+        `${location.origin}/${encodeConfig(config)}/manifest.json`,
+        `Connected. ${libraryCount} titles in your library, ${historyCount} with watch history.`,
+        config.top,
+      );
+    } catch (err) {
+      $('error').textContent = err.message;
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Connect';
+    }
+  });
+
+  function showResult(manifestUrl, summary, top) {
+    $('summary').textContent = summary;
+    $('url').value = manifestUrl;
+    // stremio://host/... install links are always opened as https:// with the
+    // port dropped, which breaks local http installs. For those, link to the
+    // Addons page's install dialog instead, which takes the address as-is.
+    const local = manifestUrl.startsWith('http://');
+    $('install').href = local
+      ? `stremio:///addons?addon=${encodeURIComponent(manifestUrl)}`
+      : manifestUrl.replace(/^https:\/\//, 'stremio://');
+    $('localSteps').hidden = !local;
+    $('urlLabel').textContent = local
+      ? 'Your install link:'
+      : 'Or paste this URL into the search box on Stremio\'s Addons page:';
+    $('topNote').textContent = top
+      ? 'Once installed, the rows move up under Continue Watching. Restart Stremio if they don\'t right away.'
+      : '';
+    $('setup').hidden = true;
+    $('result').style.display = 'block';
+  }
+
+  $('again').addEventListener('click', () => {
+    $('result').style.display = 'none';
+    $('setup').hidden = false;
+  });
+
+  // Opened from Stremio's "Configure" button (/<config>/configure): already connected.
+  const configured = location.pathname.match(/^\/([^/]{20,})\/configure$/);
+  if (configured) {
+    showResult(`${location.origin}/${configured[1]}/manifest.json`, 'Already connected.', false);
+  }
+
+  $('copy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText($('url').value);
+    } catch {
+      $('url').select();
+      document.execCommand('copy');
+    }
+    $('copy').textContent = 'Copied';
+    setTimeout(() => ($('copy').textContent = 'Copy'), 1500);
+  });
+</script>
+</body>
+</html>

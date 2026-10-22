@@ -1,0 +1,8 @@
+.env
+.git
+addon.log
+shortcut-backup
+node_modules
+test
+*.ps1
+launcher.js

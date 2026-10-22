@@ -1,0 +1,7 @@
+# Secrets
+.env
+
+# Local runtime files
+addon.log
+shortcut-backup/
+node_modules/
