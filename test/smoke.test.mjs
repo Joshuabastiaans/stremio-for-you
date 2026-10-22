@@ -271,6 +271,52 @@ await request('GET', `${main}/catalog/series/foryou.json`);
 await settle();
 check('order re-check is rate-limited to every 30s', setCalls.length === 2);
 
+// --- desktop app API (ForYou.exe) -----------------------------------------------
+
+const serverStatus = await getJson('/api/status');
+check('npm/Docker server reports it is not the desktop app', serverStatus.desktop === false && serverStatus.hasTmdbKey === true);
+check('desktop-only endpoints are off for npm/Docker', (await request('POST', '/api/tmdb-key', { key: 'x' })).status === 404);
+
+const { startServer } = await import('../lib/app.js');
+let desktopKey;
+const shortcutModes = [];
+await startServer({
+  port: 7392,
+  host: '127.0.0.1',
+  configureHtml: html,
+  getTmdbKey: () => desktopKey,
+  desktop: {
+    saveTmdbKey: async (key) => { desktopKey = key; },
+    shortcuts: async (mode) => { shortcutModes.push(mode); return [{ path: 'Stremio.lnk', forYou: mode === 'enable' }]; },
+  },
+});
+const desktopRequest = (method, path, body, origin = 'http://127.0.0.1:7392') => new Promise((resolve, reject) => {
+  const headers = { 'content-type': 'application/json', ...(origin ? { origin } : {}) };
+  const req = http.request({ host: '127.0.0.1', port: 7392, method, path, headers }, (res) => {
+    let data = '';
+    res.on('data', (d) => (data += d));
+    res.on('end', () => resolve({ status: res.statusCode, body: data }));
+  });
+  req.on('error', reject);
+  if (body) req.write(JSON.stringify(body));
+  req.end();
+});
+
+const desktopStatus = JSON.parse((await desktopRequest('GET', '/api/status')).body);
+check('desktop: reports a missing TMDB key', desktopStatus.desktop === true && desktopStatus.hasTmdbKey === false);
+check('desktop: rows wait for a TMDB key', (await desktopRequest('GET', `${main}/catalog/movie/foryou.json`)).status === 503);
+check('desktop: settings can\'t be changed from another website',
+  (await desktopRequest('POST', '/api/tmdb-key', { key: 'fakekey123' }, 'https://evil.example')).status === 403 && desktopKey === undefined);
+check('desktop: settings can\'t be changed without an Origin', (await desktopRequest('POST', '/api/tmdb-key', { key: 'fakekey123' }, null)).status === 403);
+check('desktop: a key TMDB rejects is not saved', (await desktopRequest('POST', '/api/tmdb-key', { key: 'wrong' })).status === 400 && desktopKey === undefined);
+check('desktop: a working key is saved', (await desktopRequest('POST', '/api/tmdb-key', { key: ' fakekey123 ' })).status === 200 && desktopKey === 'fakekey123');
+const desktopMovies = JSON.parse((await desktopRequest('GET', `${main}/catalog/movie/foryou.json`)).body).metas;
+check('desktop: rows work once the key is saved', desktopMovies[0]?.id === 'tt202');
+const enabled = JSON.parse((await desktopRequest('POST', '/api/shortcuts', { enable: true })).body);
+await desktopRequest('POST', '/api/shortcuts', { enable: false });
+await desktopRequest('POST', '/api/shortcuts', {});
+check('desktop: Start with Stremio on / off / status', enabled.shortcuts[0].forYou === true && shortcutModes.join() === 'enable,disable,status', shortcutModes.join());
+
 // --- misc ---------------------------------------------------------------------
 
 const configuredPage = await request('GET', `${main}/configure`);

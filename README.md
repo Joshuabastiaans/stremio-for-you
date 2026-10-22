@@ -7,8 +7,8 @@ A Stremio addon that turns your library and watch history into Netflix-style row
 
 - **Your password never reaches the addon server.** The setup page signs in to Stremio directly from your
   browser and only gets back a login key.
-- **No database, no accounts, nothing on disk.** Your login key and settings live only in your personal
-  install URL. The server keeps everything else in memory for at most a day, and its logs never include the
+- **No database, no accounts, nothing about you on disk.** Your login key and settings live only in your
+  personal install URL. The server keeps everything else in memory for at most a day, and its logs never include the
   key. Uninstall the addon and nothing about you remains.
 - **Self-hostable in one command**, so you don't have to trust anyone else's server.
 - **Treat your install URL like a password:** anyone who has it can access your Stremio account.
@@ -29,9 +29,30 @@ Every pick shows **why** it's there (for example *Because you watched: Arrival*,
 Its genre tags open your own recommendations in that genre. Each row can be switched off on the setup page.
 The rows can also sit right under **Continue Watching** instead of at the bottom.
 
-It never recommends anything you've already watched or saved. It has no dependencies: just Node.js.
+It never recommends anything you've already watched or saved.
 
-## Quick start (your own computer)
+## Download for Windows
+
+The easiest way: no Node.js and nothing to install.
+
+1. Download **ForYou.exe** from the [latest release](https://github.com/Joshuabastiaans/stremio-for-you/releases/latest)
+   and double-click it.
+   Windows may say *"Windows protected your PC"* because the app isn't code-signed: click **More info → Run anyway**.
+2. The setup page opens in your browser. The first time, it asks for a free TMDB key and shows how to get one.
+   It takes a couple of minutes.
+3. Sign in to Stremio, choose your rows, and click **Install in Stremio**.
+4. Optional: click **Start For You with Stremio**. Your Stremio shortcuts (Start menu, taskbar, desktop) then
+   start For You quietly in the background and stop it when Stremio closes. Without this, keep ForYou.exe open
+   while you use Stremio.
+
+Your TMDB key is saved in `%APPDATA%\For You`. With "Start with Stremio" on, a copy of the app lives in
+`%LOCALAPPDATA%\Programs\For You`. To remove everything, click **Stop starting with Stremio** on the setup
+page, uninstall the addon in Stremio, and delete those two folders.
+
+Stremio only accepts this kind of local addon in the app on the same computer. For phones and TVs, see
+[Hosting it](#hosting-it-phones-tvs-sharing-with-friends).
+
+## Run from source
 
 You need [Node.js 22.9+](https://nodejs.org) and a free [TMDB API key](https://www.themoviedb.org/settings/api).
 
@@ -100,17 +121,25 @@ watches show up within about half an hour.
 ## Development
 
 ```bash
-npm test    # end-to-end test against fake Stremio + TMDB APIs
+npm test             # end-to-end test against fake Stremio + TMDB APIs
+npm run build:exe    # build dist/ForYou.exe (on Windows; needs `npm install` first)
 ```
 
 | File | What it does |
 | --- | --- |
-| `server.js` | HTTP server: config page, manifest, catalog endpoints |
+| `server.js` | Entry point for `npm start` and Docker (settings from `.env`) |
+| `desktop/main.js` | Entry point for ForYou.exe (TMDB key from the setup page, start with Stremio) |
+| `lib/app.js` | HTTP server: config page, manifest, catalog endpoints |
 | `lib/recommend.js` | Scoring, ranking and building Stremio metas |
 | `lib/stremio.js` | Stremio account API (library, addon order) |
 | `lib/tmdb.js` | TMDB client with caching and a concurrency cap |
+| `lib/desktop.js` | Windows helpers: opening Stremio, its shortcuts |
 | `public/configure.html` | Setup page (signs in to Stremio from the browser) |
-| `launcher.js`, `install-shortcuts.ps1` | Optional Windows "start with Stremio" helpers |
+| `scripts/build-exe.mjs` | Bundles everything into one exe with Node's single-executable feature |
+| `launcher.js`, `install-shortcuts.ps1` | "Start with Stremio" for the run-from-source setup |
+
+Releases: push a tag like `v1.3.0`. The [release workflow](.github/workflows/release.yml) builds ForYou.exe on
+GitHub's Windows runners and publishes it.
 
 ## Credits
 

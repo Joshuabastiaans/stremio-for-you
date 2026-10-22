@@ -3,6 +3,7 @@
 addon.log
 shortcut-backup
 node_modules
+dist
 test
 *.ps1
 launcher.js

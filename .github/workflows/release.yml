@@ -1,0 +1,48 @@
+# Builds ForYou.exe on GitHub's Windows runners and publishes it as a release
+# whenever a version tag (v1.2.3) is pushed. Building here, from the tagged
+# source, means the download can be traced back to the code.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:exe
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $hash = (Get-FileHash dist/ForYou.exe -Algorithm SHA256).Hash.ToLower()
+          $notes = @"
+          ## Download
+
+          **[ForYou.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/ForYou.exe)** (Windows 10/11, no install needed)
+
+          1. Download and double-click ForYou.exe. Windows may say *"Windows protected your PC"* because the app
+             isn't code-signed: click **More info → Run anyway**.
+          2. The setup page opens in your browser. Paste a free TMDB key (the page shows how to get one), sign in
+             to Stremio, and click **Install in Stremio**.
+          3. Optional: click **Start For You with Stremio**, so it starts and stops together with Stremio.
+
+          Built by GitHub Actions from this tag with Node.js $(node --version).
+          SHA-256: ``$hash``
+          "@
+          $notes = ($notes -split "`n" | ForEach-Object { $_ -replace '^          ', '' }) -join "`n"
+          gh release create "${{ github.ref_name }}" dist/ForYou.exe --title "For You ${{ github.ref_name }}" --notes $notes

@@ -82,6 +82,16 @@
     .steps { margin: 4px 0 0; padding-left: 20px; font-size: 14px; }
     .steps li { margin: 4px 0; }
     .warn { font-size: 13px; color: var(--muted); border-left: 3px solid var(--accent); padding-left: 10px; margin-top: 18px; }
+    a { color: var(--accent-hover); }
+    h2 { font-size: 16px; margin: 20px 0 4px; }
+    #autostart { margin-top: 20px; padding-top: 4px; border-top: 1px solid var(--border); }
+    .secondary {
+      width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--accent); background: transparent; color: var(--text); font: inherit; font-weight: 600;
+    }
+    .secondary:hover { background: var(--border); }
+    .secondary:disabled { opacity: .6; cursor: wait; }
+    .ok-text { color: var(--ok); }
     footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
     footer img { height: 12px; flex-shrink: 0; }
     footer p { margin: 0; font-size: 11px; }
@@ -92,6 +102,29 @@
 <main>
   <h1>For You</h1>
   <p>Recommendations based on your Stremio library and watch history.</p>
+
+  <!-- ForYou.exe only: shown until a TMDB key is saved. -->
+  <div id="tmdbStep" hidden>
+    <h2>First: a free TMDB key</h2>
+    <p class="hint">For You gets its movie and show data from TMDB. A personal key is free and takes a couple
+      of minutes:</p>
+    <ol class="steps">
+      <li><a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">Create a free TMDB account</a>
+        and confirm your email.</li>
+      <li>Open <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">API settings</a>
+        and click <strong>Create</strong>. For the form: type of use <em>Personal</em>, application URL
+        <code>https://github.com/Joshuabastiaans/stremio-for-you</code>, and a summary like "Personal Stremio
+        recommendations addon".</li>
+      <li>Copy the <strong>API Key</strong> (or the long <strong>API Read Access Token</strong>) and paste it
+        below.</li>
+    </ol>
+    <form id="tmdbForm">
+      <label for="tmdbKey">TMDB key</label>
+      <input id="tmdbKey" type="text" spellcheck="false" autocomplete="off">
+      <button class="primary" type="submit">Save key</button>
+      <div class="error" id="tmdbError" role="alert"></div>
+    </form>
+  </div>
 
   <div id="setup">
     <div class="tabs" role="tablist">
@@ -159,6 +192,17 @@
       <button id="copy" type="button">Copy</button>
     </div>
     <p class="hint" id="topNote"></p>
+
+    <!-- ForYou.exe only. -->
+    <div id="autostart" hidden>
+      <h2>Start with Stremio</h2>
+      <p class="hint" id="autostartText">Right now For You only works while ForYou.exe is open. Turn this on and
+        your Stremio shortcuts (Start menu, taskbar, desktop) start For You in the background and stop it when
+        Stremio closes.</p>
+      <button class="secondary" id="autostartButton" type="button">Start For You with Stremio</button>
+      <p class="hint" id="autostartStatus" role="status"></p>
+    </div>
+
     <p class="warn">This URL contains your login key. Anyone who has it can access your Stremio
       account, so treat it like a password.</p>
     <p class="hint">Want different settings? <button class="link-button" id="again" type="button">Sign in again</button>
@@ -274,7 +318,82 @@
       : '';
     $('setup').hidden = true;
     $('result').style.display = 'block';
+    if (appStatus.desktop) refreshAutostart();
   }
+
+  // --- ForYou.exe extras: TMDB key and "Start with Stremio" --------------------
+  let appStatus = { desktop: false, hasTmdbKey: true };
+
+  async function localApi(path, body = {}) {
+    const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Something went wrong (HTTP ${res.status}).`);
+    return data;
+  }
+
+  $('tmdbForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const button = e.submitter;
+    button.disabled = true;
+    button.textContent = 'Checking…';
+    $('tmdbError').textContent = '';
+    try {
+      await localApi('/api/tmdb-key', { key: $('tmdbKey').value });
+      appStatus.hasTmdbKey = true;
+      $('tmdbStep').hidden = true;
+      $('setup').hidden = false;
+    } catch (err) {
+      $('tmdbError').textContent = err.message;
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Save key';
+    }
+  });
+
+  function renderAutostart(shortcuts) {
+    const on = shortcuts.some((s) => s.forYou);
+    $('autostart').hidden = false;
+    $('autostartButton').textContent = on ? 'Stop starting with Stremio' : 'Start For You with Stremio';
+    $('autostartButton').dataset.on = on ? '1' : '';
+    $('autostartStatus').className = on ? 'hint ok-text' : 'hint';
+    $('autostartStatus').textContent = on
+      ? 'On. Opening Stremio from its shortcuts starts For You too. You can close ForYou.exe.'
+      : '';
+  }
+
+  async function refreshAutostart() {
+    try {
+      renderAutostart((await localApi('/api/shortcuts')).shortcuts);
+    } catch {
+      $('autostart').hidden = true;
+    }
+  }
+
+  $('autostartButton').addEventListener('click', async () => {
+    const button = $('autostartButton');
+    button.disabled = true;
+    $('autostartStatus').className = 'hint';
+    $('autostartStatus').textContent = 'Updating Stremio\'s shortcuts…';
+    try {
+      renderAutostart((await localApi('/api/shortcuts', { enable: !button.dataset.on })).shortcuts);
+    } catch (err) {
+      $('autostartStatus').className = 'error';
+      $('autostartStatus').textContent = err.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  fetch('/api/status').then((res) => res.json()).then((status) => {
+    appStatus = status;
+    if (status.desktop && !status.hasTmdbKey) {
+      $('tmdbStep').hidden = false;
+      $('setup').hidden = true;
+      $('result').style.display = 'none';
+    } else if (status.desktop && $('result').style.display === 'block') {
+      refreshAutostart();
+    }
+  }).catch(() => {});
 
   $('again').addEventListener('click', () => {
     $('result').style.display = 'none';
