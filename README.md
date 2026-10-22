@@ -3,16 +3,28 @@
 A Stremio addon that turns your library and watch history into Netflix-style rows on your home screen,
 **without storing anything about you**.
 
-## Privacy first
+**[⬇ Download ForYou.exe for Windows](https://github.com/Joshuabastiaans/stremio-for-you/releases/latest)**:
+no Node.js, nothing to install.
 
-- **Your password never reaches the addon server.** The setup page signs in to Stremio directly from your
-  browser and only gets back a login key.
-- **No database, no accounts, nothing about you on disk.** Your login key and settings live only in your
-  personal install URL. The server keeps everything else in memory for at most a day, and its logs never include the
-  key. Uninstall the addon and nothing about you remains.
-- **Self-hostable in one command**, so you don't have to trust anyone else's server.
-- **Treat your install URL like a password:** anyone who has it can access your Stremio account.
-- The addon only reads your library, plus your addon list if you turn on "rows under Continue Watching".
+## How to use it
+
+1. Download **ForYou.exe** from the [latest release](https://github.com/Joshuabastiaans/stremio-for-you/releases/latest)
+   and double-click it.
+   Windows may say *"Windows protected your PC"* because the app isn't code-signed: click **More info → Run anyway**.
+2. The setup page opens in your browser. The first time, it asks for a free TMDB key and shows how to get one.
+   It takes a couple of minutes.
+3. Sign in to Stremio, choose your rows, and click **Install in Stremio**.
+4. Optional: click **Start For You with Stremio**. Your Stremio shortcuts (Start menu, taskbar, desktop) then
+   start For You quietly in the background and stop it when Stremio closes. Without this, keep ForYou.exe open
+   while you use Stremio.
+
+The new rows appear on Stremio's home screen. Your TMDB key is saved in `%APPDATA%\For You`. With
+"Start with Stremio" on, a copy of the app lives in `%LOCALAPPDATA%\Programs\For You`. To remove everything,
+click **Stop starting with Stremio** on the setup page, uninstall the addon in Stremio, and delete those two
+folders.
+
+This works in the Stremio app on the same Windows computer. For phones, TVs, Mac or Linux, see
+[Hosting it](#hosting-it-phones-tvs-sharing-with-friends) or [Run from source](#run-from-source).
 
 ## Rows
 
@@ -31,26 +43,16 @@ The rows can also sit right under **Continue Watching** instead of at the bottom
 
 It never recommends anything you've already watched or saved.
 
-## Download for Windows
+## Privacy
 
-The easiest way: no Node.js and nothing to install.
-
-1. Download **ForYou.exe** from the [latest release](https://github.com/Joshuabastiaans/stremio-for-you/releases/latest)
-   and double-click it.
-   Windows may say *"Windows protected your PC"* because the app isn't code-signed: click **More info → Run anyway**.
-2. The setup page opens in your browser. The first time, it asks for a free TMDB key and shows how to get one.
-   It takes a couple of minutes.
-3. Sign in to Stremio, choose your rows, and click **Install in Stremio**.
-4. Optional: click **Start For You with Stremio**. Your Stremio shortcuts (Start menu, taskbar, desktop) then
-   start For You quietly in the background and stop it when Stremio closes. Without this, keep ForYou.exe open
-   while you use Stremio.
-
-Your TMDB key is saved in `%APPDATA%\For You`. With "Start with Stremio" on, a copy of the app lives in
-`%LOCALAPPDATA%\Programs\For You`. To remove everything, click **Stop starting with Stremio** on the setup
-page, uninstall the addon in Stremio, and delete those two folders.
-
-Stremio only accepts this kind of local addon in the app on the same computer. For phones and TVs, see
-[Hosting it](#hosting-it-phones-tvs-sharing-with-friends).
+- **Your password never reaches the addon server.** The setup page signs in to Stremio directly from your
+  browser and only gets back a login key.
+- **No database, no accounts, nothing about you on disk.** Your login key and settings live only in your
+  personal install URL. The server keeps everything else in memory for at most a day, and its logs never
+  include the key. Uninstall the addon and nothing about you remains.
+- **Self-hostable in one command**, so you don't have to trust anyone else's server.
+- **Treat your install URL like a password:** anyone who has it can access your Stremio account.
+- The addon only reads your library, plus your addon list if you turn on "rows under Continue Watching".
 
 ## Run from source
 
